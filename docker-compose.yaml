@@ -14,35 +14,29 @@ services:
         ipv4_address: 172.40.0.2
     volumes:
       - ./dhcpd.conf:/etc/dhcp/dhcpd.conf
+      - ./iptables_rules.sh:/iptables_rules.sh
     restart: unless-stopped
     command:
       - /bin/sh
       - -c
       - |
+        # Configurar iptables para usar la versión legacy
+        update-alternatives --set iptables /usr/sbin/iptables-legacy
+        update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+
+        # Configuración de DHCP
         touch /var/lib/dhcp/dhcpd.leases
         chmod 644 /var/lib/dhcp/dhcpd.leases
         echo "1" > /proc/sys/net/ipv4/ip_forward
-        dhcpd -cf /etc/dhcp/dhcpd.conf -f
+        dhcpd -cf /etc/dhcp/dhcpd.conf -f &  # Arrancar DHCP en segundo plano
+
+        # Aplicar reglas de iptables
+        chmod +x /iptables_rules.sh
+        sh /iptables_rules.sh
+
+        tail -f /dev/null  # Mantiene el contenedor activo
 
 
-
-
-  #prueba de cliente dhcp
-  dhcp_client:
-    image: debian:latest
-    container_name: dhcp_client
-    networks:
-      - services_net
-    command:
-      - /bin/sh
-      - -c
-      - |
-        apt-get update && apt-get install -y isc-dhcp-client iproute2
-        dhclient eth0
-        ip a
-        sleep infinity
-    depends_on:
-      - router  # Asegura que el router se inicie antes
 
 networks:
   router_router_net:
