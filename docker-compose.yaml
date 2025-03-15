@@ -1,0 +1,55 @@
+services:
+  router:
+    build: .
+    container_name: router
+    privileged: true  # Necesario para iptables y sysctl
+    networks:
+      router_router_net:
+        ipv4_address: 172.10.0.2
+      services_net:
+        ipv4_address: 172.20.0.2
+      production_net:
+        ipv4_address: 172.30.0.2
+      development_net:
+        ipv4_address: 172.40.0.2
+    volumes:
+      - ./dhcpd.conf:/etc/dhcp/dhcpd.conf
+    restart: unless-stopped
+    command:
+      - /bin/sh
+      - -c
+      - |
+        touch /var/lib/dhcp/dhcpd.leases
+        chmod 644 /var/lib/dhcp/dhcpd.leases
+        echo "1" > /proc/sys/net/ipv4/ip_forward
+        dhcpd -cf /etc/dhcp/dhcpd.conf -f
+
+
+
+
+  #prueba de cliente dhcp
+  dhcp_client:
+    image: debian:latest
+    container_name: dhcp_client
+    networks:
+      - services_net
+    command:
+      - /bin/sh
+      - -c
+      - |
+        apt-get update && apt-get install -y isc-dhcp-client iproute2
+        dhclient eth0
+        ip a
+        sleep infinity
+    depends_on:
+      - router  # Asegura que el router se inicie antes
+
+networks:
+  router_router_net:
+    external: true
+  services_net:
+    external: true
+  production_net:
+    external: true
+  development_net:
+    external: true
