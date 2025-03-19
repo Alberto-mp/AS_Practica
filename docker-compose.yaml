@@ -13,36 +13,145 @@ services:
       development_net:
         ipv4_address: 172.40.0.2
     volumes:
-      - ./dhcpd.conf:/etc/dhcp/dhcpd.conf
+      - ./dhcpd.conf:/etc/dhcp/dhcpd.conf 
+      - ./iptables_rules.sh:/iptables_rules.sh
     restart: unless-stopped
     command:
       - /bin/sh
       - -c
       - |
+        # Configurar iptables para usar la versión legacy
+        update-alternatives --set iptables /usr/sbin/iptables-legacy
+        update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+
+        # Configuración de DHCP
         touch /var/lib/dhcp/dhcpd.leases
         chmod 644 /var/lib/dhcp/dhcpd.leases
         echo "1" > /proc/sys/net/ipv4/ip_forward
-        dhcpd -cf /etc/dhcp/dhcpd.conf -f
+        dhcpd -cf /etc/dhcp/dhcpd.conf -f &  # Arrancar DHCP en segundo plano
+
+        # Aplicar reglas de iptables
+        chmod +x /iptables_rules.sh
+        sh /iptables_rules.sh
+
+        tail -f /dev/null  # Mantiene el contenedor activo
 
 
 
+  drupal_production:
+    image: drupal:latest
+    container_name: drupal_apache
+    restart: always
+    ports:
+      - '8080:80'
+    environment:
+      DRUPAL_DB_HOST: postgres_db
+      DRUPAL_DB_NAME: drupal
+      DRUPAL_DB_USER: drupaluser
+      DRUPAL_DB_PASSWORD: drupalpass  
+    networks:
+      - production_net
+    volumes:
+      - drupal_data:/var/www/html
+    depends_on:
+      - postgres_db
 
-  #prueba de cliente dhcp
-  dhcp_client:
-    image: debian:latest
-    container_name: dhcp_client
+  postgres_db:
+    image: postgres:latest
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_DB: drupal
+      POSTGRES_USER: drupaluser
+      POSTGRES_PASSWORD: drupalpass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - production_net
+    ports:
+      - '5432:5432'  # Puerto estándar de PostgreSQL
+      - '873:873/tcp' # Puerto rsync para comunicación restringida con service_net
+    depends_on:
+      - router
+
+  drupal_dev:
+    image: drupal:latest
+    container_name: drupal_dev
+    restart: always
+    environment:
+      DRUPAL_DB_HOST: mysql_dev
+      DRUPAL_DB_USER: drupal
+      DRUPAL_DB_PASSWORD: drupal
+      DRUPAL_DB_NAME: drupal
+    ports:
+      - '8081:80'
+    networks:
+      - development_net
+    volumes:
+      - drupal_data:/var/www/html
+    depends_on:
+      - mysql_dev
+
+  mysql_dev:
+    image: mysql:latest
+    container_name: mysql_dev
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: drupal
+      MYSQL_USER: drupal
+      MYSQL_PASSWORD: drupal
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - development_net
+    depends_on:
+      - router
+
+  
+  nas_server:
+    image: crazymax/samba
+    container_name: nas_server
+    restart: always
     networks:
       - services_net
+    volumes:
+      - nas_storage:/data
+    environment:
+      SAMBA_LOG_LEVEL: 2
+      SAMBA_SHARE_NAME: "Shared"
+      SAMBA_SHARE_PATH: "/data"
+      SAMBA_USERNAME: "admin"
+      SAMBA_PASSWORD: "naspass"
+    entrypoint: ["/bin/sh", "-c"]
     command:
-      - /bin/sh
-      - -c
-      - |
-        apt-get update && apt-get install -y isc-dhcp-client iproute2
-        dhclient eth0
-        ip a
-        sleep infinity
+      - "apk add --no-cache rsync && rsync --daemon && exec /init"
     depends_on:
-      - router  # Asegura que el router se inicie antes
+      - router
+    
+
+  dns_server:
+    image: ubuntu/bind9
+    container_name: dns_server
+    restart: always
+    networks:
+      - services_net
+    ports:
+      - '53:53/tcp'
+      - '53:53/udp'
+    environment:
+      BIND9_USER: "root"
+    volumes:
+      - dns_config:/etc/bind
+    depends_on:
+      - router
+
+volumes:
+  drupal_data:
+  postgres_data:
+  mysql_data:
+  nas_storage:
+  dns_config:
 
 networks:
   router_router_net:
