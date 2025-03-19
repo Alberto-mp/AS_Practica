@@ -1,0 +1,149 @@
+networks:
+  production_net:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+  development_net:
+    ipam:
+      config:
+        - subnet: 172.40.0.0/24
+
+  service_net:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+services:
+  drupal_production:
+    image: drupal:latest
+    container_name: drupal_apache
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      DRUPAL_DB_HOST: postgres_db
+      DRUPAL_DB_NAME: drupal
+      DRUPAL_DB_USER: drupaluser
+      DRUPAL_DB_PASSWORD: drupalpass
+    networks:
+      production_net:
+        ipv4_address: 172.30.0.10
+    volumes:
+      - drupal_data:/var/www/html
+    depends_on:
+      - postgres_db
+
+  postgres_db:
+    image: postgres:latest
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_DB: drupal
+      POSTGRES_USER: drupaluser
+      POSTGRES_PASSWORD: drupalpass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      production_net:
+        ipv4_address: 172.30.0.20
+      service_net:
+        ipv4_address: 172.20.0.10
+    ports:
+      - "5432:5432"  # Puerto estándar de PostgreSQL
+      - "873:873/tcp" # Puerto rsync para comunicación restringida con service_net
+
+  drupal_dev:
+    image: drupal:latest
+    container_name: drupal_dev
+    restart: always
+    environment:
+      DRUPAL_DB_HOST: mysql_dev
+      DRUPAL_DB_USER: drupal
+      DRUPAL_DB_PASSWORD: drupal
+      DRUPAL_DB_NAME: drupal
+    ports:
+      - "8081:80"  
+    networks:
+      development_net:
+        ipv4_address: 172.40.0.10
+    volumes:
+      - drupal_data:/var/www/html
+    depends_on:
+      - mysql_dev
+
+  mysql_dev:
+    image: mysql:latest
+    container_name: mysql_dev
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: drupal
+      MYSQL_USER: drupal
+      MYSQL_PASSWORD: drupal
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      development_net:
+        ipv4_address: 172.40.0.20
+
+  
+  nas_server:
+    image: crazymax/samba
+    container_name: nas_server
+    restart: always
+    networks:
+      service_net:
+        ipv4_address: 172.20.0.50
+    volumes:
+      - nas_storage:/data
+    environment:
+      SAMBA_LOG_LEVEL: 2
+      SAMBA_SHARE_NAME: "Shared"
+      SAMBA_SHARE_PATH: "/data"
+      SAMBA_USERNAME: "admin"
+      SAMBA_PASSWORD: "naspass"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "apk add --no-cache rsync && rsync --daemon && exec /init"
+
+  dns_server:
+    image: ubuntu/bind9
+    container_name: dns_server
+    restart: always
+    networks:
+      service_net:
+        ipv4_address: 172.20.0.60
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    environment:
+      BIND9_USER: "root"
+    volumes:
+      - dns_config:/etc/bind
+
+  router:
+    image: alpine
+    container_name: router
+    restart: always
+    cap_add:
+      - NET_ADMIN  # Permite administrar la red y usar iptables
+    networks:
+      production_net:
+        ipv4_address: 172.30.0.254
+      development_net:
+        ipv4_address: 172.40.0.254
+      service_net:
+        ipv4_address: 172.20.0.254
+    command: ["/bin/sh", "-c", "apk add --no-cache iptables dnsmasq && /etc/init.d/router.sh && dnsmasq -C /etc/dnsmasq.conf && sleep infinity"]
+    volumes:
+      - ./router.sh:/etc/init.d/router.sh:ro  # Archivo con reglas de iptables
+      - ./dnsmasq.conf:/etc/dnsmasq.conf:ro  # Configuración del servidor DHCP
+
+volumes:
+  postgres_data:
+  drupal_data:
+  mysql_data:
+  drupal_prod_data:
+  nas_storage:
+  dns_config:

@@ -1,20 +1,13 @@
-FROM debian:latest
+FROM php:8.4-fpm
 
-# Instalar paquetes necesarios
-RUN apt-get update && apt-get install -y isc-dhcp-server iproute2 
+# Instalar dependencias para GD
+RUN apt-get update && apt-get install -y libpng-dev libjpeg-dev libfreetype6-dev && \
+    docker-php-ext-configure gd --with-freetype --with-jpeg && \
+    docker-php-ext-install gd
 
-# Instalar iptables y herramientas necesarias
-RUN apt-get update && apt-get install -y iptables && \
-    update-alternatives --set iptables /usr/sbin/iptables-legacy && \
-    update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+# Instalar y habilitar OPcache
+RUN docker-php-ext-install opcache
 
-# Crear directorios necesarios
-RUN mkdir -p /var/lib/dhcp
-
-# Copiar el archivo de configuración del DHCP
-COPY dhcpd.conf /etc/dhcp/dhcpd.conf
-
-
-
-# Configurar el comando de arranque desde docker-compose
-CMD ["sleep", "infinity"]
+# Instalar las dependencias para PostgreSQL
+RUN apt-get update && apt-get install -y libpq-dev && \
+    docker-php-ext-install pdo_pgsql
