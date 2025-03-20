@@ -3,6 +3,12 @@
 # Habilitar reenvío de paquetes en el kernel
 echo "1" > /proc/sys/net/ipv4/ip_forward
 
+iptables-legacy -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+iptables-legacy -t nat -A POSTROUTING -o eth1 -j MASQUERADE
+iptables-legacy -t nat -A POSTROUTING -o eth2 -j MASQUERADE
+iptables-legacy -t nat -A POSTROUTING -o eth3 -j MASQUERADE
+
+
 # Limpiar reglas previas en FORWARD para evitar duplicados
 iptables-legacy -F FORWARD
 iptables-legacy -X FORWARD

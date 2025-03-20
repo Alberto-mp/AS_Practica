@@ -42,8 +42,9 @@ services:
     image: drupal:latest
     container_name: drupal_apache
     restart: always
+    privileged: true
     ports:
-      - '8080:80'
+      - '8082:80'
     environment:
       DRUPAL_DB_HOST: postgres_db
       DRUPAL_DB_NAME: drupal
@@ -51,6 +52,8 @@ services:
       DRUPAL_DB_PASSWORD: drupalpass  
     networks:
       - production_net
+    # Comando para tener solo una IP asignada por el servidor DHCP y mantener el contenedor activo
+    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null"
     volumes:
       - drupal_data:/var/www/html
     depends_on:
@@ -60,6 +63,7 @@ services:
     image: postgres:latest
     container_name: postgres_db
     restart: always
+    privileged: true
     environment:
       POSTGRES_DB: drupal
       POSTGRES_USER: drupaluser
@@ -68,6 +72,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - production_net
+    # Comando para tener solo una IP asignada por el servidor DHCP y mantener el contenedor activo
+    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null"
     ports:
       - '5432:5432'  # Puerto estándar de PostgreSQL
       - '873:873/tcp' # Puerto rsync para comunicación restringida con service_net
@@ -78,6 +84,7 @@ services:
     image: drupal:latest
     container_name: drupal_dev
     restart: always
+    privileged: true
     environment:
       DRUPAL_DB_HOST: mysql_dev
       DRUPAL_DB_USER: drupal
@@ -87,6 +94,8 @@ services:
       - '8081:80'
     networks:
       - development_net
+    # Comando para tener solo una IP asignada por el servidor DHCP y mantener el contenedor activo
+    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null"
     volumes:
       - drupal_data:/var/www/html
     depends_on:
@@ -104,7 +113,8 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
-      - development_net
+      development_net:
+        ipv4_address: 172.40.0.10
     depends_on:
       - router
 
@@ -114,7 +124,8 @@ services:
     container_name: nas_server
     restart: always
     networks:
-      - services_net
+      services_net:
+        ipv4_address: 172.20.0.10
     volumes:
       - nas_storage:/data
     environment:
@@ -134,6 +145,7 @@ services:
     image: ubuntu/bind9
     container_name: dns_server
     restart: always
+    privileged: true
     networks:
       - services_net
     ports:
@@ -141,6 +153,8 @@ services:
       - '53:53/udp'
     environment:
       BIND9_USER: "root"
+    # Comando para tener solo una IP asignada por el servidor DHCP y mantener el contenedor activo
+    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null"
     volumes:
       - dns_config:/etc/bind
     depends_on:
