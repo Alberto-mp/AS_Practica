@@ -53,7 +53,8 @@ services:
     networks:
       - production_net
     # Comando para tener solo una IP asignada por el servidor DHCP y mantener el contenedor activo
-    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null"
+    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null 
+              && ip route add 172.20.0.0/24 via 172.30.0.2 &&   ip route add 172.40.0.0/24 via 172.30.0.2"
     volumes:
       - drupal_data:/var/www/html
     depends_on:
@@ -73,7 +74,8 @@ services:
     networks:
       - production_net
     # Comando para tener solo una IP asignada por el servidor DHCP y mantener el contenedor activo
-    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null"
+    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null
+              && ip route add 172.20.0.0/24 via 172.30.0.2 &&   ip route add 172.40.0.0/24 via 172.30.0.2"
     ports:
       - '5432:5432'  # Puerto estándar de PostgreSQL
       - '873:873/tcp' # Puerto rsync para comunicación restringida con service_net
@@ -95,7 +97,8 @@ services:
     networks:
       - development_net
     # Comando para tener solo una IP asignada por el servidor DHCP y mantener el contenedor activo
-    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null"
+    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null
+              && ip route add 172.20.0.0/24 via 172.40.0.2 &&   ip route add 172.30.0.0/24 via 172.40.0.2"
     volumes:
       - drupal_data:/var/www/html
     depends_on:
@@ -116,7 +119,8 @@ services:
     networks:
       - development_net
     # Comando para tener solo una IP asignada por el servidor DHCP y mantener el contenedor activo
-    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null"
+    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null
+              && ip route add 172.20.0.0/24 via 172.40.0.2 &&   ip route add 172.30.0.0/24 via 172.40.0.2"
     depends_on:
       - router
 
@@ -137,7 +141,8 @@ services:
       SAMBA_SHARE_PATH: "/data"
       SAMBA_USERNAME: "admin"
       SAMBA_PASSWORD: "naspass"
-    command: /bin/sh -c "ip addr del $(ip -4 -o addr show eth0 | awk '{print $4}' | cut -d/ -f1)/24 dev eth0 && udhcpc -i eth0 -q -T 3 -n && tail -f /dev/null"
+    command: /bin/sh -c "ip addr del $(ip -4 -o addr show eth0 | awk '{print $4}' | cut -d/ -f1)/24 dev eth0 && udhcpc -i eth0 -q -T 3 -n && tail -f /dev/null
+              && ip route add 172.30.0.0/24 via 172.20.0.2 &&   ip route add 172.40.0.0/24 via 172.20.0.2"
     depends_on:
       - router
     
@@ -155,7 +160,8 @@ services:
     environment:
       BIND9_USER: "root"
     # Comando para tener solo una IP asignada por el servidor DHCP y mantener el contenedor activo
-    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null"
+    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null
+            && ip route add 172.30.0.0/24 via 172.20.0.2 &&   ip route add 172.40.0.0/24 via 172.20.0.2"
     volumes:
       - dns_config:/etc/bind
     depends_on:
