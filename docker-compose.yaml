@@ -102,7 +102,7 @@ services:
       - mysql_dev
 
   mysql_dev:
-    image: mysql:8.0
+    image: mysql:8.0-debian
     container_name: mysql_dev
     restart: always
     privileged: true
@@ -115,9 +115,11 @@ services:
       - mysql_data:/var/lib/mysql
     networks:
       - development_net
-    #command: /bin/sh -c "ip addr del $(ip -4 -o addr show eth0 | awk '{print $4}' | cut -d/ -f1)/24 dev eth0 && udhcpc -i eth0 -q -T 3 -n && tail -f /dev/null"
+    # Comando para tener solo una IP asignada por el servidor DHCP y mantener el contenedor activo
+    command: /bin/bash -c "apt update && apt install -y isc-dhcp-client && dhclient -r eth0 && dhclient eth0 && ip addr del $(hostname -i)/24 dev eth0 && tail -f /dev/null"
     depends_on:
       - router
+
 
   
   nas_server:
