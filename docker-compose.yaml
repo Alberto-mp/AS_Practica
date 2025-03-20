@@ -102,9 +102,10 @@ services:
       - mysql_dev
 
   mysql_dev:
-    image: mysql:latest
+    image: mysql:8.0
     container_name: mysql_dev
     restart: always
+    privileged: true
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: drupal
@@ -113,8 +114,8 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
-      development_net:
-        ipv4_address: 172.40.0.10
+      - development_net
+    #command: /bin/sh -c "ip addr del $(ip -4 -o addr show eth0 | awk '{print $4}' | cut -d/ -f1)/24 dev eth0 && udhcpc -i eth0 -q -T 3 -n && tail -f /dev/null"
     depends_on:
       - router
 
@@ -123,9 +124,9 @@ services:
     image: crazymax/samba
     container_name: nas_server
     restart: always
+    privileged: true
     networks:
-      services_net:
-        ipv4_address: 172.20.0.10
+      - services_net
     volumes:
       - nas_storage:/data
     environment:
@@ -134,9 +135,7 @@ services:
       SAMBA_SHARE_PATH: "/data"
       SAMBA_USERNAME: "admin"
       SAMBA_PASSWORD: "naspass"
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - "apk add --no-cache rsync && rsync --daemon && exec /init"
+    command: /bin/sh -c "ip addr del $(ip -4 -o addr show eth0 | awk '{print $4}' | cut -d/ -f1)/24 dev eth0 && udhcpc -i eth0 -q -T 3 -n && tail -f /dev/null"
     depends_on:
       - router
     
