@@ -89,7 +89,7 @@ services:
     command: >
       /bin/bash -c "
         # Instalar isc-dhcp-client
-        apt update && apt install -y isc-dhcp-client iputils-ping netcat-openbsd &&
+        apt update && apt install -y isc-dhcp-client iputils-ping netcat-openbsd  &&
         # Elimina la IP asignada por Docker
         ip addr del $(hostname -i)/24 dev eth0
         # Obtén la IP mediante DHCP
@@ -234,7 +234,7 @@ services:
     command: >
       /bin/bash -c "
         # Instalar isc-dhcp-client
-        apt update && apt install -y isc-dhcp-client iputils-ping telnet &&
+        apt update && apt install -y isc-dhcp-client iputils-ping  &&
         # Elimina la IP asignada por Docker
         ip addr del $(hostname -i)/24 dev eth0
         # Obtén la IP mediante DHCP
