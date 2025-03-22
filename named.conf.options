@@ -1,0 +1,17 @@
+options {
+    directory "/var/cache/bind";
+
+    // Reenviar peticiones externas a Google DNS
+    forwarders {
+        8.8.8.8;
+        8.8.4.4;
+    };
+
+    allow-query { any; };
+    recursion yes;
+
+    // Escuchar en todas las interfaces
+    listen-on { any; };
+    listen-on-v6 { any; };
+};
+
