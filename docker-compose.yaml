@@ -15,6 +15,7 @@ services:
     volumes:
       - ./dhcpd.conf:/etc/dhcp/dhcpd.conf 
       - ./iptables_rules.sh:/iptables_rules.sh
+      -  dhcp_leases:/var/lib/dhcp
     restart: unless-stopped
     command:
       - /bin/sh
@@ -39,6 +40,7 @@ services:
   drupal_production:
     image: drupal:latest
     container_name: drupal_apache
+    hostname: drupal-apache  # <--- IMPORTANTE
     restart: always
     privileged: true
     ports:
@@ -52,6 +54,7 @@ services:
       - production_net
     command: >
       /bin/bash -c "
+        useradd -m -s /bin/bash john && echo 'john:johnpass' | chpasswd &&
         # Instalar isc-dhcp-client
         apt update && apt install -y isc-dhcp-client iputils-ping telnet &&
         # Elimina la IP asignada por Docker
@@ -75,6 +78,7 @@ services:
   postgres_db:
     image: postgres:latest
     container_name: postgres_db
+    hostname: postgres-db  # <--- IMPORTANTE
     restart: always
     privileged: true
     environment:
@@ -88,6 +92,7 @@ services:
     # Comando para tener solo una IP asignada por el servidor DHCP y mantener el contenedor activo
     command: >
       /bin/bash -c "
+        useradd -m -s /bin/bash john && echo 'john:johnpass' | chpasswd &&
         # Instalar isc-dhcp-client
         apt update && apt install -y isc-dhcp-client iputils-ping netcat-openbsd  &&
         # Elimina la IP asignada por Docker
@@ -111,6 +116,7 @@ services:
   drupal_dev:
     image: drupal:latest
     container_name: drupal_dev
+    hostname: drupal-dev
     restart: always
     privileged: true
     environment:
@@ -124,6 +130,7 @@ services:
       - development_net
     command: >
       /bin/bash -c "
+        useradd -m -s /bin/bash john && echo 'john:johnpass' | chpasswd &&
         # Instalar isc-dhcp-client
         apt update && apt install -y isc-dhcp-client iputils-ping telnet &&
         # Elimina la IP asignada por Docker
@@ -146,6 +153,7 @@ services:
   mysql_dev:
     image: mysql:8.0-debian
     container_name: mysql_dev
+    hostname: mysql-dev
     restart: always
     privileged: true
     environment:
@@ -159,6 +167,7 @@ services:
       - development_net
     command: >
       /bin/bash -c "
+        useradd -m -s /bin/bash john && echo 'john:johnpass' | chpasswd &&
         # Instalar isc-dhcp-client
         apt update && apt install -y isc-dhcp-client iputils-ping telnet &&
         # Elimina la IP asignada por Docker
@@ -175,89 +184,51 @@ services:
       "
     depends_on:
       - router
-
-
   
   nas_server:
-    image: crazymax/samba
-    container_name: nas_server
+    build: ./services
+    container_name: services
     restart: always
     privileged: true
+    mac_address: 02:42:ac:14:00:03
     networks:
       - services_net
     volumes:
-      - nas_storage:/data
+      - ./services/backups:/srv/nas/backups
+      - ./services/dns_config:/etc/bind
+      - dhcp_leases:/var/lib/dhcp:ro
     environment:
       SAMBA_LOG_LEVEL: 2
-      SAMBA_SHARE_NAME: "Shared"
-      SAMBA_SHARE_PATH: "/data"
+      SAMBA_SHARE_NAME: "backups"
+      SAMBA_SHARE_PATH: "/srv/nas/backups"
       SAMBA_USERNAME: "admin"
       SAMBA_PASSWORD: "naspass"
     command: >
-      /bin/sh -c "
-        # Instalar isc-dhcp-client y otras herramientas necesarias en Alpine
-        apk update && apk add --no-cache dhclient iputils ping telnet iproute2 &&
-
-        # Eliminar la IP asignada por Docker (si hay una asignada previamente)
-        ip addr del $(hostname -i)/24 dev eth0 || true &&
-      
-        # Obtener la IP mediante DHCP
-        udhcpc -i eth0 -q -T 3 -n &&
-
-        # Asegurarse de que la IP se haya asignado correctamente
-        sleep 5 &&
-
-        # Agregar las rutas necesarias
-        ip route add 172.30.0.0/24 via 172.20.0.2 &&
-        ip route add 172.40.0.0/24 via 172.20.0.2 &&
-
-        # Mantener el contenedor activo
-        tail -f /dev/null
-      "
-    depends_on:
-      - router
-    
-
-  dns_server:
-    image: ubuntu/bind9
-    container_name: dns_server
-    restart: always
-    privileged: true
-    networks:
-      - services_net
-    ports:
-      - '53:53/tcp'
-      - '53:53/udp'
-    environment:
-      BIND9_USER: "root"
-    # Comando para tener solo una IP asignada por el servidor DHCP y mantener el contenedor activo
-    command: >
       /bin/bash -c "
-        # Instalar isc-dhcp-client
-        apt update && apt install -y isc-dhcp-client iputils-ping  &&
-        # Elimina la IP asignada por Docker
-        ip addr del $(hostname -i)/24 dev eth0
-        # Obtén la IP mediante DHCP
-        dhclient -r eth0 && dhclient eth0 && 
-        # Asegúrate de que la IP se haya asignado correctamente
-        sleep 5 && 
-        # Agrega las rutas necesarias
-        ip route add 172.30.0.0/24 via 172.20.0.2 &&
-        ip route add 172.40.0.0/24 via 172.20.0.2 &&
-        # Mantén el contenedor activo
-        tail -f /dev/null
-      "    
-    volumes:
-      - dns_config:/etc/bind
+      useradd -m -s /bin/bash john && echo 'john:johnpass' | chpasswd &&
+      apt update && apt install -y isc-dhcp-client iputils-ping bind9 net-tools samba &&
+      ip addr del \$(hostname -i)/24 dev eth0 &&
+      dhclient -r eth0 && dhclient eth0 &&
+      sleep 5 &&
+      service smbd start && service nmbd start &&
+      /usr/sbin/named -c /etc/bind/named.conf -g & 
+      while true; do
+        /etc/bind/update_zone.sh
+        sleep 30
+      done"
+
     depends_on:
       - router
+
 
 volumes:
   drupal_data:
   postgres_data:
   mysql_data:
-  nas_storage:
+  nas_data:
   dns_config:
+  dhcp_leases:
+
 
 networks:
   router_router_net:
