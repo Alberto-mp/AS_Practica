@@ -1,0 +1,12 @@
+$TTL    604800
+@       IN      SOA     ns.prod.local. root.prod.local. (
+                              2         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+
+@       IN      NS      ns.prod.local.
+ns      IN      A       172.20.0.2
+prod_webapi     IN      A       172.30.0.10
+prod_postgres   IN      A       172.30.0.11
