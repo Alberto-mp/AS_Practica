@@ -21,6 +21,14 @@ services:
       - /bin/sh
       - -c
       - |
+        # Instalar ping
+        apt update && apt install -y traceroute iputils-ping
+        # Crear usuarios si no existen
+        adduser --disabled-password --gecos "" dev_user
+        echo 'devuser:devpass' | chpasswd
+        adduser --disabled-password --gecos "" svc_prod_user
+        echo 'produser:prodpass' | chpasswd
+
         # Configurar iptables para usar la versión legacy
         update-alternatives --set iptables /usr/sbin/iptables-legacy
         update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
@@ -29,13 +37,14 @@ services:
         touch /var/lib/dhcp/dhcpd.leases
         chmod 644 /var/lib/dhcp/dhcpd.leases
         echo "1" > /proc/sys/net/ipv4/ip_forward
-        dhcpd -cf /etc/dhcp/dhcpd.conf -f &  # Arrancar DHCP en segundo plano
+        dhcpd -cf /etc/dhcp/dhcpd.conf -f &
 
         # Aplicar reglas de iptables
         chmod +x /iptables_rules.sh
         sh /iptables_rules.sh
 
-        tail -f /dev/null  # Mantiene el contenedor activo
+        tail -f /dev/null
+
 
   drupal_production:
     image: drupal:latest

@@ -29,3 +29,16 @@ iptables-legacy -A FORWARD -s 172.20.0.0/24 -d 172.30.0.0/24 -p tcp --dport 873 
 # 🔓 PERMITIR comunicación libre entre services_net (172.20.0.0/24) y development_net (172.40.0.0/24)
 iptables-legacy -A FORWARD -s 172.20.0.0/24 -d 172.40.0.0/24 -j ACCEPT
 iptables-legacy -A FORWARD -s 172.40.0.0/24 -d 172.20.0.0/24 -j ACCEPT
+
+# Obtener UID de los usuarios
+DEV_UID=$(id -u devuser)
+PROD_UID=$(id -u produser)
+
+# 🚫 Bloquear todo el tráfico de devuser que no sea a Development (172.40.0.0/24)
+iptables-legacy -A OUTPUT -m owner --uid-owner $DEV_UID ! -d 172.40.0.0/24 -j REJECT
+
+# ✅ Permitir primero el tráfico válido
+iptables-legacy -A OUTPUT -m owner --uid-owner $PROD_UID -d 172.20.0.0/24 -j ACCEPT
+iptables-legacy -A OUTPUT -m owner --uid-owner $PROD_UID -d 172.30.0.0/24 -j ACCEPT
+# ❌ Y luego rechazar todo lo demás
+iptables-legacy -A OUTPUT -m owner --uid-owner $PROD_UID -j REJECT
