@@ -197,6 +197,7 @@ services:
       - ./services/backups:/srv/nas/backups
       - ./services/dns_config:/etc/bind
       - dhcp_leases:/var/lib/dhcp:ro
+      - ./dhcpd.conf:/etc/dhcp/dhcpd.conf
     environment:
       SAMBA_LOG_LEVEL: 2
       SAMBA_SHARE_NAME: "backups"
@@ -211,6 +212,8 @@ services:
       dhclient -r eth0 && dhclient eth0 &&
       sleep 5 &&
       service smbd start && service nmbd start &&
+      ip route add 172.30.0.0/24 via 172.20.0.2 &&   
+      ip route add 172.40.0.0/24 via 172.20.0.2 &&
       /usr/sbin/named -c /etc/bind/named.conf -g & 
       while true; do
         /etc/bind/update_zone.sh
