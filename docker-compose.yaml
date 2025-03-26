@@ -206,19 +206,19 @@ services:
       SAMBA_PASSWORD: "naspass"
     command: >
       /bin/bash -c "
-      useradd -m -s /bin/bash john && echo 'john:johnpass' | chpasswd &&
-      apt update && apt install -y isc-dhcp-client iputils-ping bind9 net-tools samba &&
-      ip addr del \$(hostname -i)/24 dev eth0 &&
-      dhclient -r eth0 && dhclient eth0 &&
-      sleep 5 &&
-      service smbd start && service nmbd start &&
-      ip route add 172.30.0.0/24 via 172.20.0.2 &&   
-      ip route add 172.40.0.0/24 via 172.20.0.2 &&
-      /usr/sbin/named -c /etc/bind/named.conf -g & 
-      while true; do
-        /etc/bind/update_zone.sh
-        sleep 30
-      done"
+      id -u john &>/dev/null || useradd -m -s /bin/bash john;
+      echo 'john:johnpass' | chpasswd;
+      apt-get update && apt-get install -y --no-install-recommends isc-dhcp-client iputils-ping bind9 net-tools samba;
+      ip addr del \$(hostname -i)/24 dev eth0;
+      dhclient -r eth0 && dhclient eth0;
+      sleep 5;
+      service smbd start && service nmbd start;
+      ip route add 172.30.0.0/24 via 172.20.0.2;
+      ip route add 172.40.0.0/24 via 172.20.0.2;
+      /usr/sbin/named -c /etc/bind/named.conf -g;
+      tail -f /dev/null
+      "
+
 
     depends_on:
       - router
