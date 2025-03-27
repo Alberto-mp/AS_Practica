@@ -97,27 +97,27 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      production_net:
-        ipv4_address: 172.30.0.11
-      services_net:
-        ipv4_address: 172.20.0.11
+      - production_net
+      - services_net
     command: >
       /bin/bash -c "
         # Crear usuario 'john' si no existe
-        id -u john >/dev/null 2>&1 || (useradd -m -s /bin/bash john && echo 'john:johnpass' | chpasswd)
+        id -u john >/dev/null 2>&1 || (useradd -m -s /bin/bash john && echo 'john:johnpass' | chpasswd) &&
 
         # Instalar herramientas necesarias
-        apt update && apt install -y isc-dhcp-client iputils-ping netcat-openbsd iproute2
+        apt update && apt install -y isc-dhcp-client iputils-ping netcat-openbsd iproute2 &&
 
         # Intentar limpiar IP si Docker la asignó (ignorar error si ya fue cambiada)
-        ip addr del $(hostname -i)/24 dev eth0 || true
+        ip addr flush dev eth0 &&
+        ip addr flush dev eth1 &&
 
         # Obtener IP por DHCP (si aplica)
-        dhclient -r eth0 && dhclient eth0
+        dhclient -r eth0 && dhclient eth0 &&
+        dhclient -r eth1 && dhclient eth1 &&
 
         # Añadir rutas necesarias entre redes (por si hay bloqueo interredes)
-        ip route add 172.20.0.0/24 via 172.30.0.2 || true
-        ip route add 172.40.0.0/24 via 172.30.0.2 || true
+        ip route add 172.20.0.0/24 via 172.30.0.2 || true &&
+        ip route add 172.40.0.0/24 via 172.30.0.2 || true &&
 
         # Ejecutar el servicio de PostgreSQL normalmente
         exec docker-entrypoint.sh postgres
@@ -221,7 +221,6 @@ services:
       SAMBA_USERNAME: "admin"
       SAMBA_PASSWORD: "naspass"
     command: ["/bin/bash", "/start.sh"]
-
 
     depends_on:
       - router
