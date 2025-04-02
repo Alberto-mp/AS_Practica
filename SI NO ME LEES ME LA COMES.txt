@@ -13,6 +13,8 @@ pruebas para comprobar que todo funciona:
 
 - rsync:  
  - Desde prod_postgres y mysql_dev prueba a hacer rsync. Comando: rsync -avz <fichero que se quiera pasar> rsync://<poner ip o nombre de dominio dns de services>/backups/
+ - rsync rsync://ns.dev.local/ debe mostrar carpetas
+ - hay mas opciones, pero con que funcione alguna ya vale
 
 - backups:  
  - Desde el contendor de services, hacer bash srv/nas/backups/backups.sh para forzar la copia de seguridad
