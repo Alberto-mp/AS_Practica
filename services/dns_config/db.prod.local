@@ -1,0 +1,13 @@
+$TTL    86400
+@       IN      SOA     dns.prod.local. root.prod.local. (
+                        2025040116 ; Serial
+                        3600       ; Refresh
+                        1800       ; Retry
+                        1209600    ; Expire
+                        86400 )    ; Negative Cache TTL
+
+@       IN      NS      ns.prod.local.
+ns      IN      A       172.20.0.3
+
+postgres-prod        IN      A       172.30.0.10
+prod-drupal          IN      A       172.30.0.11
