@@ -1,0 +1,14 @@
+zone "prod.local" {
+    type master;
+    file "/etc/bind/db.prod.local";
+};
+
+zone "dev.local" {
+    type master;
+    file "/etc/bind/db.dev.local";
+};
+
+zone "svc.local" {
+    type master;
+    file "/etc/bind/db.svc.local";
+};

@@ -1,0 +1,25 @@
+IMPORTANTE: Cada vez que vayáis a hacer un down os recomiendo borrar los volúmenes de Docker dps de que se tumben y hacer siempre mejor docker-compose up --build -d
+            Antes de levantar los contendores tener las subredes creadas (Docker network créate --subnet <direccion de subred>/24 <nombre_red = son las del compose>)
+	    Esperar tmb a que se cargen los logs de services antes de ponerse a hacer cualquier cosa
+
+pruebas para comprobar que todo funciona:
+- pings:
+ - Comprueba que desde dev no se puede hacer ping a las redes de production (las ips que te salgan en db.prod.local)
+ - Compueba que desde dev se puede hacer ping a los nombres de dominio de db.dev.local (nombre que aperzca con extensión .dev.local)
+ - Comprueba que desde prod se puede hacer ping a los nombres de dominio de db.prod.local (nombre que aperzca con extensión .prod.local)
+ - Desde prod_postgres se hace ping a la 172.20.0.3 porque tiene una interfaz en su misma red
+ - Todos los contenedores pueden hacer ping a todas las interfaces del router (tiene sentido ya todos están conectados al mismo que da salida a internet)
+ - prod_webapi, no debe de hacer ping a la 172.20.0.3 y por defecto a su nombre de dominio dns
+
+- rsync:  
+ - Desde prod_postgres y mysql_dev prueba a hacer rsync. Comando: rsync -avz <fichero que se quiera pasar> rsync://<poner ip o nombre de dominio dns de services>/backups/
+
+- backups:  
+ - Desde el contendor de services, hacer bash srv/nas/backups/backups.sh para forzar la copia de seguridad
+
+- VPN:
+ - Desde contenedor probar pings de los usuarios (hacer ls /home para ver los nombres y luego su <nombre_usuairo> para acceder)
+
+
+
+ 
