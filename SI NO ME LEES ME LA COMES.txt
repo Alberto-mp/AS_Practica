@@ -1,5 +1,5 @@
 IMPORTANTE: Cada vez que vayáis a hacer un down os recomiendo borrar los volúmenes de Docker dps de que se tumben y hacer siempre mejor docker-compose up --build -d
-            Antes de levantar los contendores tener las subredes creadas (Docker network créate --subnet <direccion de subred>/24 <nombre_red = son las del compose>)
+            Antes de levantar los contendores tener las subredes creadas (Docker network create --subnet <direccion de subred>/24 <nombre_red = son las del compose>)
 	    Esperar tmb a que se cargen los logs de services antes de ponerse a hacer cualquier cosa
 
 pruebas para comprobar que todo funciona:
